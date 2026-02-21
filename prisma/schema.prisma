@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum MeetingStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT
+  FAILED
+  ACCEPTED
+  DECLINED
+}
+
+//////////////////////////////////////////////////////
+// USER
+//////////////////////////////////////////////////////
+
+model User {
+  id        String  @id @default(uuid())
+  clerkId   String  @unique
+  email     String? @unique
+  name      String?
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  username  String?
+
+  //////////////////////////////////////////////////////
+  // Bot Configuration
+  //////////////////////////////////////////////////////
+  botName     String? @default("Meeting Bot")
+  botImageUrl String?
+
+  //////////////////////////////////////////////////////
+  // Google Calendar
+  //////////////////////////////////////////////////////
+  // googleAccessToken  String?
+  // googleRefreshToken String?
+  // googleTokenExpiry  DateTime?
+  // calendarConnected  Boolean   @default(false)
+
+  //////////////////////////////////////////////////////
+  // Slack
+  //////////////////////////////////////////////////////
+  slackInstallations SlackInstallation[]
+  slackUserId          String?
+  slackTeamId          String?
+  slackConnected       Boolean @default(false)
+  preferredChannelId   String?
+  preferredChannelName String?
+
+  //////////////////////////////////////////////////////
+  // Billing
+  //////////////////////////////////////////////////////
+  currentPlan          String    @default("free")
+  subscriptionStatus   String    @default("inactive")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  billingPeriodStart   DateTime?
+  meetingsThisMonth    Int       @default(0)
+  chatMessagesToday    Int       @default(0)
+
+  //////////////////////////////////////////////////////
+  // Relations
+  //////////////////////////////////////////////////////
+  hostedMeetings   Meeting[]              @relation("HostedMeetings")
+  participations   MeetingParticipant[]
+  integrations     UserIntegration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+//////////////////////////////////////////////////////
+// MEETING
+//////////////////////////////////////////////////////
+
+model Meeting {
+  id           String   @id @default(uuid())
+  streamCallId String?  @unique
+
+  title        String
+  description  String?
+
+  //////////////////////////////////////////////////////
+  // Scheduling
+  //////////////////////////////////////////////////////
+  scheduledFor DateTime?
+  duration     Int?          // planned duration (minutes)
+
+  startedAt    DateTime?
+  endedAt      DateTime?
+  actualDuration Int?        // actual duration (minutes)
+
+  status       MeetingStatus @default(SCHEDULED)
+  
+
+
+  //////////////////////////////////////////////////////
+  // Calendar
+  //////////////////////////////////////////////////////
+  // calendarEventId String? @unique
+  // isFromCalendar  Boolean @default(false)
+
+  //////////////////////////////////////////////////////
+  // Bot
+  //////////////////////////////////////////////////////
+  // botScheduled Boolean   @default(true)
+  // botSent      Boolean   @default(false)
+  // botId        String?
+  // botJoinedAt  DateTime?
+
+  //////////////////////////////////////////////////////
+  // Recording & Transcript
+  //////////////////////////////////////////////////////
+  recordingUrls     String[] @default([])
+  recordingDuration Int?
+  transcriptReady   Boolean  @default(false)
+  transcript        Json?
+  speakers          Json?
+
+  //////////////////////////////////////////////////////
+  // AI Output
+  //////////////////////////////////////////////////////
+  summary        String?
+  actionItems    Json?
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  ragProcessed   Boolean   @default(false)
+  ragProcessedAt DateTime?
+
+  //////////////////////////////////////////////////////
+  // Email
+  //////////////////////////////////////////////////////
+  emailSent   Boolean   @default(false)
+  emailSentAt DateTime?
+
+  //////////////////////////////////////////////////////
+  // Participation Analytics
+  //////////////////////////////////////////////////////
+  totalParticipants Int @default(0)
+
+  //////////////////////////////////////////////////////
+  // Host Relation
+  //////////////////////////////////////////////////////
+  hostId String
+  host   User   @relation("HostedMeetings", fields: [hostId], references: [id], onDelete: Cascade)
+
+  //////////////////////////////////////////////////////
+  // Relations
+  //////////////////////////////////////////////////////
+  invitations        Invitation[]
+  participants       MeetingParticipant[]
+  transcriptChunks   TranscriptChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("meetings")
+}
+
+//////////////////////////////////////////////////////
+// INVITATION
+//////////////////////////////////////////////////////
+
+model Invitation {
+  id        String   @id @default(uuid())
+
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  email     String
+  name      String?
+  status    InvitationStatus @default(PENDING)
+
+  sentAt     DateTime  @default(now())
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([meetingId, email])
+  @@index([meetingId])
+  @@map("invitations")
+}
+
+//////////////////////////////////////////////////////
+// MEETING PARTICIPANTS
+//////////////////////////////////////////////////////
+
+model MeetingParticipant {
+  id String @id @default(uuid())
+
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+  duration    Int?      // seconds
+
+  isMicMuted  Boolean @default(false)
+  isCameraOff Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_participants")
+}
+
+//////////////////////////////////////////////////////
+// TRANSCRIPT CHUNKS (Vector / RAG)
+//////////////////////////////////////////////////////
+
+model TranscriptChunk {
+  id          String   @id @default(uuid())
+  meetingId   String
+  chunkIndex  Int
+  content     String   @db.Text
+  speakerName String?
+  vectorId    String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([meetingId, chunkIndex])
+  @@map("transcript_chunks")
+}
+
+//////////////////////////////////////////////////////
+// USER INTEGRATIONS (Generic External Platforms)
+//////////////////////////////////////////////////////
+
+model UserIntegration {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform     String
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
+  boardId     String?
+  boardName   String?
+  projectId   String?
+  projectName String?
+  workspaceId String?
+  domain      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@map("user_integrations")
+}
+
+//////////////////////////////////////////////////////
+// SLACK INSTALLATION (Workspace Level)
+//////////////////////////////////////////////////////
+
+model SlackInstallation {
+  id        String @id @default(uuid())
+  teamId    String @unique
+  teamName  String
+  botToken  String @db.Text
+
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
