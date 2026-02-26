@@ -3,7 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components//ui/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ConditionalLayout } from "./components/conditional-layout";
 import { Toaster } from "@/components/ui/toaster";
+import { UsageProvider } from "./contexts/UsageContext";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "react-datepicker/dist/react-datepicker.css";
 const inter = Inter({ subsets: ["latin"] });
@@ -45,8 +47,13 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-          </ThemeProvider>
+            <UsageProvider>
+              <ConditionalLayout>
+          
         {children}
+        </ConditionalLayout>
+        </UsageProvider>
+        </ThemeProvider>
       </body>
     </ClerkProvider>
     </html>
