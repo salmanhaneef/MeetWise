@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, DollarSign, Home, Layers3, Settings } from "lucide-react";
+import { Bot, DollarSign, Home, Layers3, Play, Settings, Video } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useUsage } from "@/app/contexts/UsageContext";
 import {
@@ -33,8 +33,7 @@ export function AppSidebar() {
   const { userId, isLoaded } = useAuth();
 
   // ─── DEBUG STATE ───────────────────────────────────────────────
-  const [apiResult, setApiResult] = useState<string>("not tested yet");
-  const [apiStatus, setApiStatus] = useState<number | null>(null);
+
 
   useEffect(() => {
     console.log("🔍 [Sidebar] loading:", loading);
@@ -44,20 +43,7 @@ export function AppSidebar() {
     console.log("🔍 [Sidebar] isLoaded:", isLoaded);
   }, [loading, usage, limits, userId, isLoaded]);
 
-  const testApiDirectly = async () => {
-    try {
-      setApiResult("fetching...");
-      const res = await fetch("/api/user/usage");
-      setApiStatus(res.status);
-      const text = await res.text();
-      console.log("🔍 [Direct API Test] status:", res.status);
-      console.log("🔍 [Direct API Test] body:", text);
-      setApiResult(text);
-    } catch (err) {
-      console.error("🔍 [Direct API Test] error:", err);
-      setApiResult("ERROR: " + String(err));
-    }
-  };
+  
   // ─── END DEBUG ─────────────────────────────────────────────────
 
   const meetingProgress =
@@ -93,10 +79,10 @@ export function AppSidebar() {
       {/* HEADER */}
       <SidebarHeader className="border-b border-sidebar-border p-4 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Bot className="w-4 h-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sidebar-primary-foreground">
+            <Video className="w-4 h-4" />
           </div>
-          <span className="text-lg font-semibold text-sidebar-foreground">MeetingBot</span>
+          <span className="text-lg font-semibold text-sidebar-foreground">MeetWise</span>
         </div>
       </SidebarHeader>
 
@@ -130,25 +116,7 @@ export function AppSidebar() {
           <span className="text-sm font-semibold text-sidebar-foreground">MeetWise</span>
         </div>
 
-        {/* ====================================================== */}
-        {/* DEBUG PANEL - DELETE THIS ENTIRE BLOCK AFTER FIXING     */}
-        {/* <div className="rounded-lg border border-yellow-500 bg-yellow-500/10 p-3 mb-3 text-xs space-y-1">
-          <p className="font-bold text-yellow-400">🔍 DEBUG PANEL</p>
-          <p className="text-yellow-300">loading: <span className="text-white font-mono">{String(loading)}</span></p>
-          <p className="text-yellow-300">isLoaded (clerk): <span className="text-white font-mono">{String(isLoaded)}</span></p>
-          <p className="text-yellow-300">userId: <span className="text-white font-mono">{userId ?? "NULL"}</span></p>
-          <p className="text-yellow-300">usage: <span className="text-white font-mono">{usage ? JSON.stringify(usage) : "NULL"}</span></p>
-          <p className="text-yellow-300">limits: <span className="text-white font-mono">{JSON.stringify(limits)}</span></p>
-          <p className="text-yellow-300 mt-2">API status: <span className="text-white font-mono">{apiStatus ?? "not tested"}</span></p>
-          <p className="text-yellow-300 break-all">API body: <span className="text-white font-mono">{apiResult}</span></p>
-          <button
-            onClick={testApiDirectly}
-            className="mt-2 w-full bg-yellow-500 text-black rounded px-2 py-1 font-bold hover:bg-yellow-400"
-          >
-            Test /api/user/usage directly
-          </button> */}
-        {/* </div> */}
-        {/* ====================================================== */}
+    
 
         {loading && (
           <div className="rounded-lg bg-sidebar-accent/50 p-3 mb-3 animate-pulse">
