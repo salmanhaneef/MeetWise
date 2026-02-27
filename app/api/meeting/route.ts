@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { StreamClient } from "@stream-io/node-sdk";
 import prisma, { MeetingStatus } from "@/lib/prisma";
-
+import { canScheduleMeeting, incrementMeetingUsage } from "@/lib/usage";
 const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
 const apiSecret = process.env.STREAM_SECRET_KEY;
 
@@ -110,6 +110,134 @@ export async function GET(req: NextRequest) {
 /*                         POST: CREATE NEW MEETING                            */
 /* -------------------------------------------------------------------------- */
 
+// export async function POST(req: NextRequest) {
+//   console.log("\n\n🚀 ================================================");
+//   console.log("🚀 [POST] Creating new meeting");
+//   console.log("🚀 ================================================\n");
+
+//   try {
+//     const user = await getUserFromRequest(req);
+
+//     if (!user) {
+//       console.log("❌ [POST] Unauthorized");
+//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//     }
+
+//     if (!apiKey || !apiSecret) {
+//       console.log("❌ [POST] Stream credentials missing");
+//       return NextResponse.json(
+//         { error: "Stream credentials missing" },
+//         { status: 500 }
+//       );
+//     }
+
+//     console.log("🔍 [POST] Finding user in database...");
+//     const dbUser = await prisma.user.findUnique({
+//       where: { clerkId: user.id },
+//     });
+
+//     if (!dbUser) {
+//       console.log("❌ [POST] User not found in database");
+//       return NextResponse.json(
+//         { error: "User not found in database" },
+//         { status: 404 }
+//       );
+//     }
+
+//     console.log("✅ [POST] User found:", dbUser.id);
+
+//     const body = await req.json();
+//     const { title, description, scheduledFor, duration } = body;
+
+//     console.log("📋 [POST] Meeting details:");
+//     console.log("   - Title:", title);
+//     console.log("   - Description:", description || "None");
+//     console.log("   - Scheduled for:", scheduledFor);
+//     console.log("   - Duration:", duration, "minutes");
+
+//     // Validation
+//     if (!title || !scheduledFor || !duration) {
+//       console.log("❌ [POST] Missing required fields");
+//       return NextResponse.json(
+//         { error: "Missing required fields: title, scheduledFor, duration" },
+//         { status: 400 }
+//       );
+//     }
+
+//     const scheduledDate = new Date(scheduledFor);
+//     if (isNaN(scheduledDate.getTime())) {
+//       console.log("❌ [POST] Invalid date format:", scheduledFor);
+//       return NextResponse.json(
+//         { error: "Invalid date format" },
+//         { status: 400 }
+//       );
+//     }
+
+//     console.log("📞 [POST] Creating Stream call...");
+//     const client = new StreamClient(apiKey, apiSecret);
+//     const callId = `meeting-${Date.now()}`;
+//     const call = client.video.call("default", callId);
+
+//     await call.getOrCreate({
+//       data: {
+//         created_by_id: user.id,
+//         starts_at: scheduledDate,
+//         custom: {
+//           title,
+//           description: description || "",
+//           duration,
+//           hostId: user.id,
+//           hostName:
+//             ("username" in user && user.username) ||
+//             ("firstName" in user && user.firstName) ||
+//             "User",
+//           status: MeetingStatus.SCHEDULED,
+//         },
+//       },
+//     });
+
+//     console.log("✅ [POST] Stream call created:", callId);
+
+//     console.log("💾 [POST] Saving meeting to database...");
+//     const meeting = await prisma.meeting.create({
+//       data: {
+//         streamCallId: callId,
+//         title,
+//         description,
+//         scheduledFor: scheduledDate,
+//         duration,
+//         hostId: dbUser.id,
+//         status: MeetingStatus.SCHEDULED,
+//       },
+//       include: {
+//         host: true,
+//         participants: { include: { user: true } },
+//       },
+//     });
+
+//     console.log("✅ [POST] Meeting created successfully:", meeting.id);
+//     console.log("🚀 ================================================\n\n");
+
+//     return NextResponse.json({
+//       success: true,
+//       meeting,
+//       callId,
+//       message: "Meeting created successfully",
+//     });
+//   } catch (error) {
+//     console.error("\n❌ ================================================");
+//     console.error("❌ [POST] Error creating meeting");
+//     console.error("❌ ================================================");
+//     console.error(error);
+//     console.error("❌ ================================================\n\n");
+    
+//     return NextResponse.json(
+//       { error: "Failed to create meeting" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
 export async function POST(req: NextRequest) {
   console.log("\n\n🚀 ================================================");
   console.log("🚀 [POST] Creating new meeting");
@@ -145,6 +273,18 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("✅ [POST] User found:", dbUser.id);
+
+    // ✅ ADD: Check plan limits BEFORE creating anything
+    console.log("🔍 [POST] Checking plan limits...");
+    const canSchedule = await canScheduleMeeting(dbUser.id);
+    if (!canSchedule.allowed) {
+      console.log("❌ [POST] Plan limit reached:", canSchedule.reason);
+      return NextResponse.json(
+        { error: canSchedule.reason, upgradeRequired: true },
+        { status: 403 }
+      );
+    }
+    console.log("✅ [POST] Plan check passed");
 
     const body = await req.json();
     const { title, description, scheduledFor, duration } = body;
@@ -198,24 +338,35 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ [POST] Stream call created:", callId);
 
-    console.log("💾 [POST] Saving meeting to database...");
-    const meeting = await prisma.meeting.create({
-      data: {
-        streamCallId: callId,
-        title,
-        description,
-        scheduledFor: scheduledDate,
-        duration,
-        hostId: dbUser.id,
-        status: MeetingStatus.SCHEDULED,
-      },
-      include: {
-        host: true,
-        participants: { include: { user: true } },
-      },
+    // ✅ ATOMIC TRANSACTION: Create meeting + increment usage
+    console.log("💾 [POST] Saving meeting and incrementing usage...");
+    const [meeting] = await prisma.$transaction(async (tx) => {
+      const newMeeting = await tx.meeting.create({
+        data: {
+          streamCallId: callId,
+          title,
+          description,
+          scheduledFor: scheduledDate,
+          duration,
+          hostId: dbUser.id,
+          status: MeetingStatus.SCHEDULED,
+        },
+        include: {
+          host: true,
+          participants: { include: { user: true } },
+        },
+      });
+
+      // Increment usage within same transaction
+      await tx.user.update({
+        where: { id: dbUser.id },
+        data: { meetingsThisMonth: { increment: 1 } }
+      });
+
+      return [newMeeting];
     });
 
-    console.log("✅ [POST] Meeting created successfully:", meeting.id);
+    console.log("✅ [POST] Meeting created and usage incremented:", meeting.id);
     console.log("🚀 ================================================\n\n");
 
     return NextResponse.json({
@@ -224,12 +375,23 @@ export async function POST(req: NextRequest) {
       callId,
       message: "Meeting created successfully",
     });
+
   } catch (error) {
     console.error("\n❌ ================================================");
     console.error("❌ [POST] Error creating meeting");
     console.error("❌ ================================================");
     console.error(error);
     console.error("❌ ================================================\n\n");
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("limit") || error.message.includes("Upgrade")) {
+        return NextResponse.json(
+          { error: error.message, upgradeRequired: true },
+          { status: 403 }
+        );
+      }
+    }
     
     return NextResponse.json(
       { error: "Failed to create meeting" },
