@@ -34,7 +34,7 @@ enum InvitationStatus {
 model User {
   id        String  @id @default(uuid())
   clerkId   String  @unique
-  email     String? @unique
+  email     String @unique
   name      String?
   firstName String?
   lastName  String?
@@ -95,7 +95,7 @@ model User {
 
 model Meeting {
   id           String   @id @default(uuid())
-  streamCallId String?  @unique
+  streamCallId String  @unique
 
   title        String
   description  String?
@@ -103,8 +103,8 @@ model Meeting {
   //////////////////////////////////////////////////////
   // Scheduling
   //////////////////////////////////////////////////////
-  scheduledFor DateTime?
-  duration     Int?          // planned duration (minutes)
+  scheduledFor DateTime
+  duration     Int          // planned duration (minutes)
 
   startedAt    DateTime?
   endedAt      DateTime?
@@ -177,6 +177,7 @@ model Meeting {
   @@index([hostId])
   @@index([status])
   @@index([scheduledFor])
+  @@index([streamCallId])
   @@map("meetings")
 }
 
@@ -202,6 +203,7 @@ model Invitation {
 
   @@unique([meetingId, email])
   @@index([meetingId])
+  @@index([email])
   @@map("invitations")
 }
 
