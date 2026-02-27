@@ -57,8 +57,8 @@ export default function Navbar({
           : 'bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-b border-blue-900/30'
       }`}
     >
-      {/* Container with responsive padding and max-width constraints */}
-      <div className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 lg:px-8 max-w-[1920px] mx-auto">
+      {/* Container - Full width on mobile/medium, constrained on large screens */}
+      <div className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 lg:px-8 lg:max-w-[1920px] lg:mx-auto w-full">
         
         {/* Left Section */}
         <div className="flex items-center gap-2 sm:gap-4">

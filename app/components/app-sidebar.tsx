@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
 const items = [
-  { title: "Home", url: "/home", icon: Home },
+  { title: "Home", url: "/dashboard", icon: Home },
   { title: "Integrations", url: "/integrations", icon: Layers3 },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Chat", url: "/chat", icon: Bot },

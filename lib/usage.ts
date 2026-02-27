@@ -6,7 +6,7 @@ interface PlanLimits {
 }
 
 const PLAN_LIMITS: Record<string, PlanLimits> = {
-    free: { meetings: 0, chatMessages: 0 },
+    free: { meetings: 3, chatMessages: 10 },
     starter: { meetings: 10, chatMessages: 30 },
     pro: { meetings: 30, chatMessages: 100 },
     premium: { meetings: -1, chatMessages: -1 }
@@ -21,7 +21,7 @@ export async function canUserSendBot(userId: string) {
         return { allowed: false, reason: 'User not found' }
     }
 
-    if (user.currentPlan === 'free' || user.subscriptionStatus !== 'active') {
+    if (user.currentPlan !== 'free' && user.subscriptionStatus !== 'active') {
         return { allowed: false, reason: 'Upgrade your plan to send bots to meetings' }
     }
 
@@ -49,7 +49,7 @@ export async function canScheduleMeeting(userId: string) {
         return { allowed: false, reason: 'User not found' }
     }
 
-    if (user.currentPlan === 'free' || user.subscriptionStatus !== 'active') {
+    if (user.currentPlan !== 'free' && user.subscriptionStatus !== 'active') {
         return { allowed: false, reason: 'Upgrade your plan to schedule meetings' }
     }
 
@@ -75,7 +75,7 @@ export async function canUserChat(userId: string) {
         return { allowed: false, reason: 'User not found' }
     }
 
-    if (user.currentPlan === 'free' || user.subscriptionStatus !== 'active') {
+    if (user.currentPlan !== 'free' && user.subscriptionStatus !== 'active'){
         return { allowed: false, reason: 'Upgrade your plan to chat with our AI bot' }
     }
 
