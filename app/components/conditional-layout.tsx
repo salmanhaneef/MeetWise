@@ -1,9 +1,8 @@
 "use client";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useAuth } from "@clerk/nextjs";
-import { useUser } from '@clerk/nextjs';
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { AppSidebar } from "./app-sidebar";
 import Navbar from "./Navbar";
 import { useState, useEffect } from "react";
@@ -11,11 +10,12 @@ import { DashboardProvider, useDashboard } from "./DashboardContext";
 import CreateMeetingModal from "@/app/(root)/(home)/dashboard/components/CreateMeetingModal";
 import InviteParticipantModal from "@/app/(root)/(home)/dashboard/components/InviteParticipantModal";
 
-// Inner component that uses context
+// Define routes where sidebar should be hidden (purely for UI, not auth)
+const NO_SIDEBAR_ROUTES = ["/", "/sign-in", "/sign-up"];
+
+// Inner component - UI only, no auth checks
 function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
   const pathname = usePathname();
-  const { isSignedIn } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -29,6 +29,7 @@ function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
     handleInviteClick,
   } = useDashboard();
 
+  // Mobile detection
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
@@ -36,23 +37,29 @@ function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  if (!isLoaded) {
-    return <div>Loading...</div>;
-  }
+  // Determine if sidebar should be shown (purely UI-based)
+  const showSidebar = !NO_SIDEBAR_ROUTES.includes(pathname);
 
-  if (!user) {
-    return <div>Please sign in</div>;
-  }
-
-  const showSidebar =
-    isSignedIn &&
-    pathname !== "/" &&
-    !(pathname.startsWith("/meeting/") && !isSignedIn);
-
+  // Render without sidebar for public/marketing pages
   if (!showSidebar) {
-    return <div className="min-h-svh">{children}</div>;
+    return (
+      <div className="min-h-svh">
+        {children}
+        {/* Modals still available if context triggers them */}
+        <CreateMeetingModal
+          isOpen={isCreateMeetingOpen}
+          onClose={() => setIsCreateMeetingOpen(false)}
+        />
+        <InviteParticipantModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          meetingId={selectedMeeting?.streamCallId || null}
+        />
+      </div>
+    );
   }
 
+  // Render full app layout with sidebar + navbar
   return (
     <SidebarProvider 
       defaultOpen={!isMobile}
@@ -79,12 +86,11 @@ function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* Global Modals - Controlled by context */}
+      {/* Global Modals - Controlled by dashboard context */}
       <CreateMeetingModal
         isOpen={isCreateMeetingOpen}
         onClose={() => setIsCreateMeetingOpen(false)}
       />
-
       <InviteParticipantModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
