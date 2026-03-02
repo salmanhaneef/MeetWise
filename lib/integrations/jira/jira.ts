@@ -1,4 +1,9 @@
 import { ActionItemData } from "../type"
+import https from 'https'
+// Define proper type for fetch options with agent
+type FetchOptions = RequestInit & {
+  agent?: https.Agent | undefined
+}
 
 export class JiraAPI {
     private baseUrl = 'https://api.atlassian.com/ex/jira'
