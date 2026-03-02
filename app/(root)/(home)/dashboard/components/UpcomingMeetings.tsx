@@ -1,10 +1,21 @@
+// app/(root)/(home)/dashboard/components/UpcomingMeetings.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import {
-  Calendar, Clock, Users, Copy, Edit, Trash2, Video, UserPlus, X, Save,
-  Sparkles, ArrowRight, MoreVertical
+  Calendar,
+  Clock,
+  Users,
+  Copy,
+  Edit,
+  Trash2,
+  Video,
+  UserPlus,
+  X,
+  Save,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -31,22 +42,24 @@ interface Meeting {
 
 interface UpcomingMeetingsProps {
   userId: string;
-  onSelectMeeting?: (meeting: { id: string; streamCallId: string; title: string }) => void;
+  onSelectMeeting?: (meeting: {
+    id: string;
+    streamCallId: string;
+    title: string;
+  }) => void;
   selectedMeetingId?: string;
-  onOpenInviteModal?: (meetingId: string, streamCallId: string, title: string) => void;
+  onOpenInviteModal?: (
+    meetingId: string,
+    streamCallId: string,
+    title: string,
+  ) => void;
 }
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95 }
-};
-
-export default function UpcomingMeetings({ 
-  userId, 
+export default function UpcomingMeetings({
+  userId,
   onSelectMeeting,
   selectedMeetingId,
-  onOpenInviteModal 
+  onOpenInviteModal,
 }: UpcomingMeetingsProps) {
   const { user } = useUser();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -68,7 +81,9 @@ export default function UpcomingMeetings({
   const fetchUpcomingMeetings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/meeting/upcoming?testUserId=${userId}`);
+      const response = await fetch(
+        `/api/meeting/upcoming?testUserId=${userId}`,
+      );
       const data = await response.json();
       if (data.success) setMeetings(data.meetings);
     } catch (error) {
@@ -93,7 +108,7 @@ export default function UpcomingMeetings({
   const handleUpdateMeeting = async () => {
     if (!meetingToUpdate) return;
     if (!updateForm.title.trim()) return toast.error("Title is required");
-    
+
     setUpdatingMeeting(true);
     try {
       const response = await fetch(`/api/meeting?testUserId=${userId}`, {
@@ -105,7 +120,7 @@ export default function UpcomingMeetings({
           scheduledFor: new Date(updateForm.scheduledFor).toISOString(),
         }),
       });
-      
+
       if (response.ok) {
         toast.success("Meeting updated!");
         setUpdateModalOpen(false);
@@ -119,14 +134,18 @@ export default function UpcomingMeetings({
   };
 
   const copyMeetingLink = (streamCallId: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/meeting/${streamCallId}`);
+    navigator.clipboard.writeText(
+      `${window.location.origin}/meeting/${streamCallId}`,
+    );
     toast.success("Link copied!");
   };
 
   const handleDelete = async (meeting: Meeting) => {
     if (!confirm(`Delete "${meeting.title}"?`)) return;
     try {
-      await fetch(`/api/meeting?meetingId=${meeting.id}&testUserId=${userId}`, { method: "DELETE" });
+      await fetch(`/api/meeting?meetingId=${meeting.id}&testUserId=${userId}`, {
+        method: "DELETE",
+      });
       toast.success("Meeting deleted");
       fetchUpcomingMeetings();
     } catch (error) {
@@ -140,18 +159,20 @@ export default function UpcomingMeetings({
 
   const isHost = (meeting: Meeting) => {
     if (meeting.host?.clerkId) {
-      return meeting.host.clerkId === user?.id || meeting.host.clerkId === userId;
+      return (
+        meeting.host.clerkId === user?.id || meeting.host.clerkId === userId
+      );
     }
     return meeting.host?.id === userId;
   };
 
   if (loading) {
     return (
-      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
+      <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-white/10 rounded-xl w-1/3"></div>
+          <div className="h-6 bg-slate-800 rounded w-1/4"></div>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 bg-white/5 rounded-2xl"></div>
+            <div key={i} className="h-24 bg-slate-800/50 rounded-xl"></div>
           ))}
         </div>
       </div>
@@ -160,176 +181,246 @@ export default function UpcomingMeetings({
 
   return (
     <>
-      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-yellow-400" />
-              Upcoming Meetings
-            </h2>
-            <p className="text-blue-200/60 mt-1">
-              {meetings.length} {meetings.length === 1 ? "meeting" : "meetings"} scheduled
-            </p>
-          </div>
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25">
-            <Calendar className="w-6 h-6 text-white" />
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles
+                  className="w-5 h-5 text-yellow-400"
+                  aria-hidden="true"
+                />
+                Upcoming Meetings
+              </h2>
+              <p className="text-slate-400 text-sm mt-1">
+                {meetings.length}{" "}
+                {meetings.length === 1 ? "meeting" : "meetings"} scheduled
+              </p>
+            </div>
+            <div
+              className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20"
+              aria-hidden="true"
+            >
+              <Calendar className="w-5 h-5 text-blue-400" />
+            </div>
           </div>
         </div>
 
         {/* Meetings List */}
-        <div className="p-6 space-y-4">
+        <div className="divide-y divide-slate-800">
           <AnimatePresence mode="popLayout">
             {meetings.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-16"
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-12 text-center"
               >
-                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full flex items-center justify-center">
-                  <Calendar className="w-10 h-10 text-blue-400" />
+                <div
+                  className="w-16 h-16 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Calendar className="w-8 h-8 text-slate-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No upcoming meetings</h3>
-                <p className="text-blue-200/50">Schedule your first meeting</p>
+                <h3 className="text-base font-semibold text-white mb-1">
+                  No upcoming meetings
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  Schedule your first meeting
+                </p>
               </motion.div>
             ) : (
               meetings.map((meeting) => {
                 const isSelected = selectedMeetingId === meeting.id;
                 const host = isHost(meeting);
-                
+
                 return (
                   <motion.div
                     key={meeting.id}
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    layout
-                    className={`relative p-5 rounded-2xl border transition-all duration-300 ${
-                      isSelected 
-                        ? 'bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border-blue-400/50 shadow-2xl shadow-blue-500/20' 
-                        : 'bg-white/5 border-white/10 hover:border-blue-500/30 hover:bg-white/[0.07]'
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`p-6 transition-colors ${
+                      isSelected ? "bg-blue-500/5" : "hover:bg-slate-800/30"
                     }`}
                   >
-                    {/* Selected Indicator */}
-                    {isSelected && (
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg"
-                      >
-                        <Sparkles className="w-3 h-3 text-white" />
-                      </motion.div>
-                    )}
-
-                    {/* Meeting Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-white group-hover:text-blue-200 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        {/* Title and Status */}
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <h3 className="text-base font-semibold text-white truncate">
                             {meeting.title}
                           </h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            meeting.status === "ONGOING"
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                              : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          }`}>
+                          <span
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                              meeting.status === "ONGOING"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            }`}
+                          >
+                            <CheckCircle2
+                              className="w-3 h-3"
+                              aria-hidden="true"
+                            />
                             {meeting.status}
                           </span>
                         </div>
+
+                        {/* Description */}
                         {meeting.description && (
-                          <p className="text-sm text-blue-200/60 line-clamp-2">{meeting.description}</p>
+                          <p className="text-sm text-slate-400 mb-4 line-clamp-2">
+                            {meeting.description}
+                          </p>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Meeting Info */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-blue-200/70 bg-white/5 p-2 rounded-lg">
-                        <Calendar className="w-4 h-4 text-blue-400" />
-                        <span>{format(new Date(meeting.scheduledFor), "MMM dd")}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-blue-200/70 bg-white/5 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-indigo-400" />
-                        <span>{format(new Date(meeting.scheduledFor), "hh:mm a")}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-blue-200/70 bg-white/5 p-2 rounded-lg col-span-2">
-                        <Users className="w-4 h-4 text-violet-400" />
-                        <span>{meeting.totalParticipants} participants • {meeting.duration} min</span>
-                      </div>
-                    </div>
+                        {/* Meeting Details */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Calendar
+                              className="w-4 h-4 text-blue-400"
+                              aria-hidden="true"
+                            />
+                            <span>
+                              {format(
+                                new Date(meeting.scheduledFor),
+                                "MMM dd, yyyy",
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Clock
+                              className="w-4 h-4 text-indigo-400"
+                              aria-hidden="true"
+                            />
+                            <span>
+                              {format(
+                                new Date(meeting.scheduledFor),
+                                "hh:mm a",
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Users
+                              className="w-4 h-4 text-violet-400"
+                              aria-hidden="true"
+                            />
+                            <span>
+                              {meeting.totalParticipants} participants •{" "}
+                              {meeting.duration} min
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => joinMeeting(meeting.streamCallId)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/25 transition-all"
-                      >
-                        <Video className="w-4 h-4" />
-                        Join
-                      </motion.button>
-
-                      {host && (
-                        <>
-                          {!isSelected && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onSelectMeeting?.({
-                                id: meeting.id,
-                                streamCallId: meeting.streamCallId,
-                                title: meeting.title
-                              })}
-                              className="flex items-center gap-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-                            >
-                              <UserPlus className="w-4 h-4" />
-                              Select
-                            </motion.button>
-                          )}
-                          
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 mt-4">
                           <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => onOpenInviteModal?.(meeting.id, meeting.streamCallId, meeting.title)}
-                            className="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="button"
+                            onClick={() => joinMeeting(meeting.streamCallId)}
+                            aria-label={`Join meeting: ${meeting.title}`}
+                            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                           >
-                            <UserPlus className="w-4 h-4" />
-                            Invite
+                            <Video className="w-4 h-4" aria-hidden="true" />
+                            Join
                           </motion.button>
 
-                          <div className="flex gap-2 ml-auto">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => copyMeetingLink(meeting.streamCallId)}
-                              className="p-2 bg-white/5 hover:bg-white/10 text-blue-300 rounded-lg transition-colors"
-                              title="Copy link"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => openUpdateModal(meeting)}
-                              className="p-2 bg-white/5 hover:bg-white/10 text-indigo-300 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => handleDelete(meeting)}
-                              className="p-2 bg-white/5 hover:bg-rose-500/20 text-rose-300 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </motion.button>
-                          </div>
-                        </>
-                      )}
+                          {host && (
+                            <>
+                              {!isSelected && (
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  type="button"
+                                  onClick={() =>
+                                    onSelectMeeting?.({
+                                      id: meeting.id,
+                                      streamCallId: meeting.streamCallId,
+                                      title: meeting.title,
+                                    })
+                                  }
+                                  aria-label={`Select meeting: ${meeting.title}`}
+                                  className="flex items-center gap-2 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/20 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                                >
+                                  <UserPlus
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
+                                  />
+                                  Select
+                                </motion.button>
+                              )}
+
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="button"
+                                onClick={() =>
+                                  onOpenInviteModal?.(
+                                    meeting.id,
+                                    meeting.streamCallId,
+                                    meeting.title,
+                                  )
+                                }
+                                aria-label={`Invite people to: ${meeting.title}`}
+                                className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                              >
+                                <UserPlus
+                                  className="w-4 h-4"
+                                  aria-hidden="true"
+                                />
+                                Invite
+                              </motion.button>
+
+                              <div className="flex gap-2 ml-auto">
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() =>
+                                    copyMeetingLink(meeting.streamCallId)
+                                  }
+                                  aria-label={`Copy link for: ${meeting.title}`}
+                                  title="Copy meeting link"
+                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+                                >
+                                  <Copy
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
+                                  />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => openUpdateModal(meeting)}
+                                  aria-label={`Edit meeting: ${meeting.title}`}
+                                  title="Edit meeting"
+                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+                                >
+                                  <Edit
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
+                                  />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => handleDelete(meeting)}
+                                  aria-label={`Delete meeting: ${meeting.title}`}
+                                  title="Delete meeting"
+                                  className="p-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+                                >
+                                  <Trash2
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
+                                  />
+                                </motion.button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 );
@@ -347,93 +438,185 @@ export default function UpcomingMeetings({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="update-modal-title"
+            aria-describedby="update-modal-description"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-white/10 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
             >
-              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-blue-600/20 to-indigo-600/20">
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-white">Update Meeting</h3>
-                  <p className="text-blue-200/60 text-sm">Edit meeting details</p>
+                  <h3
+                    id="update-modal-title"
+                    className="text-lg font-bold text-white"
+                  >
+                    Update Meeting
+                  </h3>
+                  <p
+                    id="update-modal-description"
+                    className="text-slate-400 text-sm"
+                  >
+                    Edit meeting details
+                  </p>
                 </div>
-                <button type="button" onClick={() => setUpdateModalOpen(false)} title="Close" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <X className="w-5 h-5 text-white" />
+                <button
+                  type="button"
+                  onClick={() => setUpdateModalOpen(false)}
+                  aria-label="Close update meeting modal"
+                  title="Close"
+                  className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" aria-hidden="true" />
                 </button>
               </div>
 
+              {/* Modal Body */}
               <div className="p-6 space-y-4">
+                {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">Title *</label>
+                  <label
+                    htmlFor="update-meeting-title"
+                    className="block text-sm font-medium text-slate-300 mb-2"
+                  >
+                    Title <span aria-hidden="true">*</span>
+                    <span className="sr-only">(required)</span>
+                  </label>
                   <input
+                    id="update-meeting-title"
                     type="text"
                     value={updateForm.title}
-                    onChange={(e) => setUpdateForm({ ...updateForm, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    onChange={(e) =>
+                      setUpdateForm({ ...updateForm, title: e.target.value })
+                    }
                     placeholder="Meeting title"
+                    aria-required="true"
+                    className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">Description</label>
+                  <label
+                    htmlFor="update-meeting-description"
+                    className="block text-sm font-medium text-slate-300 mb-2"
+                  >
+                    Description
+                  </label>
                   <textarea
+                    id="update-meeting-description"
                     value={updateForm.description}
-                    onChange={(e) => setUpdateForm({ ...updateForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setUpdateForm({
+                        ...updateForm,
+                        description: e.target.value,
+                      })
+                    }
                     rows={3}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                     placeholder="Add description..."
+                    className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Date & Time */}
                   <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-2">Date & Time *</label>
+                    <label
+                      htmlFor="update-meeting-scheduled-for"
+                      className="block text-sm font-medium text-slate-300 mb-2"
+                    >
+                      Date &amp; Time <span aria-hidden="true">*</span>
+                      <span className="sr-only">(required)</span>
+                    </label>
                     <input
+                      id="update-meeting-scheduled-for"
                       type="datetime-local"
                       value={updateForm.scheduledFor}
-                      onChange={(e) => setUpdateForm({ ...updateForm, scheduledFor: e.target.value })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      title="Select date and time for the meeting"
-                      aria-label="Meeting date and time"
+                      onChange={(e) =>
+                        setUpdateForm({
+                          ...updateForm,
+                          scheduledFor: e.target.value,
+                        })
+                      }
+                      title="Scheduled date and time"
+                      aria-required="true"
+                      className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                   </div>
+
+                  {/* Duration */}
                   <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-2">Duration (min) *</label>
+                    <label
+                      htmlFor="update-meeting-duration"
+                      className="block text-sm font-medium text-slate-300 mb-2"
+                    >
+                      Duration (min) <span aria-hidden="true">*</span>
+                      <span className="sr-only">(required)</span>
+                    </label>
                     <input
+                      id="update-meeting-duration"
                       type="number"
                       value={updateForm.duration}
-                      onChange={(e) => setUpdateForm({ ...updateForm, duration: parseInt(e.target.value) || 30 })}
+                      onChange={(e) =>
+                        setUpdateForm({
+                          ...updateForm,
+                          duration: parseInt(e.target.value) || 30,
+                        })
+                      }
                       min="15"
                       step="15"
-                      placeholder="Meeting duration in minutes"
-                      aria-label="Meeting duration in minutes"
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      title="Meeting duration in minutes"
+                      placeholder="30"
+                      aria-required="true"
+                      className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-white/10 flex gap-3 bg-white/5">
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-800 flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setUpdateModalOpen(false)}
-                  className="flex-1 px-4 py-3 border border-white/20 text-white rounded-xl hover:bg-white/10 transition-all font-medium"
+                  className="flex-1 px-4 py-2.5 border border-slate-700 text-slate-300 rounded-xl hover:bg-slate-800 transition-all font-medium"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleUpdateMeeting}
                   disabled={updatingMeeting}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  aria-label={
+                    updatingMeeting
+                      ? "Saving meeting changes..."
+                      : "Save meeting changes"
+                  }
+                  className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {updatingMeeting ? (
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                    </motion.div>
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                        aria-hidden="true"
+                      >
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      </motion.div>
+                      <span>Saving...</span>
+                    </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4" />
+                      <Save className="w-4 h-4" aria-hidden="true" />
                       Save Changes
                     </>
                   )}

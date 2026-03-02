@@ -1,84 +1,98 @@
-// import prisma from "@/lib/prisma";
-// import { auth } from "@clerk/nextjs/server";
-// import { WebClient } from "@slack/web-api";
-// import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { WebClient } from "@slack/web-api";
+import { NextRequest, NextResponse } from "next/server";
 
-// // Add this interface for Slack channel
-// interface SlackChannel {
-//     id: string;
-//     name: string;
-// }
+export async function GET() {
+    try {
+        const { userId } = await auth()
+        if (!userId) {
+            return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+        }
 
-// export async function GET(request: NextRequest) {
-//     try {
-//         const { userId } = await auth()
+        const user = await prisma.user.findUnique({
+            where: { clerkId: userId },
+            select: {
+                slackTeamId: true,
+                preferredChannelId: true,
+                preferredChannelName: true,
+            }
+        })
+        console.log('[Slack Setup GET] User state:', JSON.stringify(user, null, 2))
 
-//         if (!userId) {
-//             return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-//         }
+        if (!user?.slackTeamId) {
+            return NextResponse.json({ 
+                channels: [], 
+                connected: false, 
+                needsSetup: true 
+            })
+        }
 
-//         const user = await prisma.user.findFirst({
-//             where: {
-//                 clerkId: userId
-//             }
-//         })
+        const installation = await prisma.slackInstallation.findUnique({
+            where: { teamId: user.slackTeamId }
+        })
 
-//         if (!user?.slackTeamId) {
-//             return NextResponse.json({ error: 'slack not connected' }, { status: 400 })
-//         }
+        if (!installation?.botToken) {
+            return NextResponse.json({ 
+                channels: [], 
+                connected: false,
+                error: 'installation not found' 
+            }, { status: 400 })
+        }
 
-//         const installation = await prisma.slackInstallation.findUnique({
-//             where: {
-//                 teamId: user.slackTeamId
-//             }
-//         })
+        const slack = new WebClient(installation.botToken)
+        const result = await slack.conversations.list({
+            types: 'public_channel,private_channel',
+            limit: 100
+        })
 
-//         if (!installation) {
-//             return NextResponse.json({ error: 'installation not found' }, { status: 400 })
-//         }
+        const channels = result.channels
+            ?.filter(ch => !ch.is_archived)
+            ?.map(ch => ({
+                id: ch.id,
+                name: ch.name,
+                isPrivate: ch.is_private
+            })) ?? []
 
-//         const slack = new WebClient(installation.botToken)
+        return NextResponse.json({
+            channels,
+            connected: true,
+            teamName: installation.teamName,
+            preferredChannelId: user.preferredChannelId,
+            preferredChannelName: user.preferredChannelName,
+        })
 
-//         const channels = await slack.conversations.list({
-//             types: 'public_channel',
-//             limit: 50
-//         })
+    } catch (error) {
+        console.error('slack setup GET error:', error)
+        return NextResponse.json({ error: 'failed to fetch channels' }, { status: 500 })
+    }
+}
 
-//         return NextResponse.json({
-//             // ✅ Typed the ch parameter
-//             channels: channels.channels?.map((ch: SlackChannel) => ({
-//                 id: ch.id,
-//                 name: ch.name
-//             })) || []
-//         })
-//     } catch (error) {
-//         console.error('slack setup error:', error)
-//         return NextResponse.json({ error: 'failed to fetch channels' }, { status: 500 })
-//     }
-// }
+export async function POST(request: NextRequest) {
+    try {
+        const { userId } = await auth()
+        if (!userId) {
+            return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+        }
 
-// export async function POST(request: NextRequest) {
-//     try {
-//         const { userId } = await auth()
+        const { channelId, channelName } = await request.json()
 
-//         if (!userId) {
-//             return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-//         }
+        if (!channelId) {
+            return NextResponse.json({ error: 'channelId required' }, { status: 400 })
+        }
 
-//         const { channelId, channelName } = await request.json()
+        await prisma.user.update({
+            where: { clerkId: userId },
+            data: {
+                preferredChannelId: channelId,
+                preferredChannelName: channelName ?? null
+            }
+        })
 
-//         await prisma.user.updateMany({
-//             where: {
-//                 clerkId: userId
-//             },
-//             data: {
-//                 preferredChannelId: channelId,
-//                 preferredChannelName: channelName
-//             }
-//         })
-//         return NextResponse.json({ success: true })
-//     } catch (error) {
-//         console.error('Slack setup save error:', error)
-//         return NextResponse.json({ error: 'failed to save setup' }, { status: 500 })
-//     }
-// }
+        return NextResponse.json({ success: true, channelId, channelName })
+
+    } catch (error) {
+        console.error('slack setup POST error:', error)
+        return NextResponse.json({ error: 'failed to save channel' }, { status: 500 })
+    }
+}

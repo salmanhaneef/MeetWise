@@ -1,5 +1,3 @@
-// lib/rag.ts
-
 import prisma from "./prisma";
 import { chatWithAI, createEmbedding, createManyEmbeddings } from "./gemini";
 import { saveManyVectors, searchVectors } from "./pinecone";

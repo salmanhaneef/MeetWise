@@ -6,7 +6,7 @@ import { useDashboard } from '@/app/components/DashboardContext';
 import UpcomingMeetings from './UpcomingMeetings';
 import PreviousMeetings from './PreviousMeetings';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Pin, CalendarDays } from 'lucide-react';
+import { X, Pin, CalendarDays, Sparkles } from 'lucide-react';
 
 export default function DashboardClient() {
   const { user, isLoaded } = useUser();
@@ -21,19 +21,15 @@ export default function DashboardClient() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full"
-        />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         Please sign in
       </div>
     );
@@ -45,82 +41,75 @@ export default function DashboardClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-950 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Animated Background Elements */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
         {/* Dashboard Header */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 relative"
+          transition={{ duration: 0.3 }}
+          className="mb-6"
         >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg shadow-blue-500/25">
-              <CalendarDays className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+              <CalendarDays className="w-6 h-6 text-blue-400" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-blue-200 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-white">
+                Dashboard
+              </h1>
+              <p className="text-slate-400 text-sm mt-0.5">
+                Welcome back, <span className="text-slate-200 font-medium">{user.firstName || 'User'}</span>
+                <Sparkles className="inline-block w-3.5 h-3.5 ml-1.5 text-yellow-500" />
+              </p>
+            </div>
           </div>
-          <p className="text-blue-200/70 text-lg ml-11">
-            Welcome back, <span className="text-blue-100 font-semibold">{user.firstName || 'User'}</span>!
-            <Sparkles className="inline-block w-4 h-4 ml-2 text-yellow-400 animate-pulse" />
-          </p>
         </motion.div>
 
         {/* Selected Meeting Indicator */}
         <AnimatePresence>
           {selectedMeeting && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, height: 0 }}
-              animate={{ opacity: 1, scale: 1, height: 'auto' }}
-              exit={{ opacity: 0, scale: 0.95, height: 0 }}
-              className="mb-6 overflow-hidden"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6"
             >
-              <div className="relative p-5 rounded-2xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border border-blue-400/30 backdrop-blur-xl shadow-2xl shadow-blue-900/20">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-2xl" />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-blue-500/30 rounded-full animate-bounce">
-                      <Pin className="w-5 h-5 text-blue-300" />
+              <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                      <Pin className="w-4 h-4 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-blue-100 font-semibold text-lg">
+                      <p className="text-slate-200 font-medium text-sm">
                         Selected: {selectedMeeting.title}
                       </p>
-                      <p className="text-blue-300/70 text-sm mt-1">
+                      <p className="text-slate-400 text-xs mt-0.5">
                         Click invite button in navbar to add participants
                       </p>
                     </div>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={clearSelectedMeeting}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all duration-300 backdrop-blur-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                     Clear
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Meetings Grid - Equal Height Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative items-start">
+        {/* Meetings Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Upcoming Meetings */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
             <UpcomingMeetings 
               userId={user.id}
@@ -130,11 +119,11 @@ export default function DashboardClient() {
             />
           </motion.div>
 
-          {/* Previous Meetings - Now matches Upcoming style */}
+          {/* Previous Meetings */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
             <PreviousMeetings />
           </motion.div>
