@@ -6,7 +6,7 @@ import { useUser } from '@clerk/nextjs';
 
 import { tokenProvider } from '@/actions/stream.actions';
 import Loader from '@/components/ui/Loader';
-
+//hello
 const API_KEY = process.env.NEXT_PUBLIC_STREAM_API_KEY;
 
 const StreamVideoProvider = ({ children }: { children: ReactNode }) => {
@@ -30,5 +30,6 @@ const StreamVideoProvider = ({ children }: { children: ReactNode }) => {
 
   return <StreamVideo client={videoClient}>{children}</StreamVideo>;
 };
+//hello
 
 export default StreamVideoProvider;
